@@ -4,7 +4,7 @@ import cz.metdat.config.AppProperties;
 import cz.metdat.domain.AppUser;
 import cz.metdat.domain.TestResult;
 import cz.metdat.domain.TestStatus;
-import cz.metdat.dto.Dtos.Lookups;
+import cz.metdat.dto.*;
 import cz.metdat.repository.AppUserRepository;
 import cz.metdat.repository.TechnicalTestRepository;
 import java.util.Arrays;

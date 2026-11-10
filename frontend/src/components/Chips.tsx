@@ -1,4 +1,5 @@
 import { Chip, type ChipProps } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 
 const STATUS_COLOR: Record<string, ChipProps['color']> = {
   Draft: 'default', Planned: 'info', 'In Progress': 'warning', Completed: 'success', Cancelled: 'error',
@@ -8,7 +9,14 @@ const RESULT_COLOR: Record<string, ChipProps['color']> = {
   'Passed with remarks': 'warning', Preliminary: 'info', Cancelled: 'default',
 };
 
-export const StatusChip = ({ status }: { status: string }) => <Chip size="small" label={status} color={STATUS_COLOR[status] ?? 'default'} />;
+/** Status/result values are server enums; only their display text is translated. */
+export function StatusChip({ status }: { status: string }) {
+  const { t } = useTranslation();
+  return <Chip size="small" label={t(`status.${status}`, status)} color={STATUS_COLOR[status] ?? 'default'} />;
+}
 
-export const ResultChip = ({ result }: { result: string | null }) =>
-  result ? <Chip size="small" variant="outlined" label={result} color={RESULT_COLOR[result] ?? 'default'} /> : <span aria-label="no result">—</span>;
+export function ResultChip({ result }: { result: string | null }) {
+  const { t } = useTranslation();
+  if (!result) return <span aria-label={t('result.none')}>—</span>;
+  return <Chip size="small" variant="outlined" label={t(`result.${result}`, result)} color={RESULT_COLOR[result] ?? 'default'} />;
+}

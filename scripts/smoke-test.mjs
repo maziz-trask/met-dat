@@ -37,6 +37,17 @@ const users = (await call('GET', '/api/auth/demo-users')).data;
 ok('10 demo users (6 editors, 4 readers)', users?.length === 10 && users.filter((u) => u.role === 'EDITOR').length === 6);
 const E = await login(users.find((u) => u.role === 'EDITOR').id), R = await login(users.find((u) => u.role === 'READER').id);
 
+// --- registration / password login (new accounts are always Readers) ---
+const mail = `smoke-${Date.now()}@example.com`;
+const reg = await call('POST', '/api/auth/register', { json: { name: 'Smoke User', email: mail, password: 'smoke-pass-123', role: 'EDITOR' } });
+ok('registration works and ignores a requested role (Reader)', reg.status === 201 && reg.data.user.role === 'READER', JSON.stringify(reg.data));
+const pw = await call('POST', '/api/auth/login', { json: { email: mail, password: 'smoke-pass-123' } });
+ok('password login works', pw.status === 200 && !!pw.data.token);
+ok('wrong password rejected (401)', (await call('POST', '/api/auth/login', { json: { email: mail, password: 'nope-nope-1' } })).status === 401);
+ok('registered Reader cannot write (403)', (await call('POST', '/api/test-types', { token: pw.data.token, json: { name: 'x' } })).status === 403);
+const czRes = await fetch(base + '/api/tests', { headers: { 'Accept-Language': 'cs' } });
+ok('API messages follow Accept-Language (cs)', (await czRes.json()).message.includes('přihlášení'));
+
 ok('unauthenticated call rejected (401)', (await call('GET', '/api/tests')).status === 401);
 const list = await call('GET', '/api/tests?size=5&sort=vin,asc', { token: R });
 ok('reader lists tests; seed has >= 50, paged by server', list.status === 200 && list.data.totalElements >= 50 && list.data.content.length === 5);

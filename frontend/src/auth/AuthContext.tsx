@@ -2,13 +2,15 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useQueryClient } from '@tanstack/react-query';
 import { tokenStore } from '../api/client';
 import { authApi } from '../api/services';
-import type { Role, User } from '../models/types';
+import type { Credentials, LoginResponse, Registration, User } from '../models/types';
 
 interface AuthState {
   user: User | null;
   loading: boolean;
   isEditor: boolean;
-  signIn: (userId: number) => Promise<void>;
+  demoSignIn: (userId: number) => Promise<User>;
+  login: (credentials: Credentials) => Promise<User>;
+  register: (registration: Registration) => Promise<User>;
   signOut: () => void;
 }
 
@@ -16,28 +18,34 @@ const AuthContext = createContext<AuthState | null>(null);
 
 /**
  * UI-side identity only. The role shown here comes from the server (/auth/me); every API call is authorised again
- * on the backend from the signed token, so hiding buttons is a convenience, not the security boundary.
+ * on the backend, so hiding buttons is a convenience, not the security boundary.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(!!tokenStore.get());
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!tokenStore.get()) return;
     authApi.me().then(setUser).catch(() => tokenStore.set(null)).finally(() => setLoading(false));
   }, []);
 
-  const signIn = useCallback(async (userId: number) => {
-    const res = await authApi.login(userId);
+  const accept = useCallback((res: LoginResponse): User => {
     tokenStore.set(res.token);
     setUser(res.user);
-    qc.clear();   // never show data cached under the previous identity
-  }, [qc]);
+    queryClient.clear();   // never show data cached under the previous identity
+    return res.user;
+  }, [queryClient]);
 
-  const signOut = useCallback(() => { tokenStore.set(null); setUser(null); qc.clear(); }, [qc]);
+  const demoSignIn = useCallback((id: number) => authApi.demoLogin(id).then(accept), [accept]);
+  const login = useCallback((c: Credentials) => authApi.login(c).then(accept), [accept]);
+  const register = useCallback((r: Registration) => authApi.register(r).then(accept), [accept]);
+  const signOut = useCallback(() => { tokenStore.set(null); setUser(null); queryClient.clear(); }, [queryClient]);
 
-  const value = useMemo<AuthState>(() => ({ user, loading, isEditor: user?.role === ('EDITOR' as Role), signIn, signOut }), [user, loading, signIn, signOut]);
+  const value = useMemo<AuthState>(
+    () => ({ user, loading, isEditor: user?.role === 'EDITOR', demoSignIn, login, register, signOut }),
+    [user, loading, demoSignIn, login, register, signOut],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

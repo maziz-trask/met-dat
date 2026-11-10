@@ -19,14 +19,14 @@ public final class IsoWeeks {
 
     public static Period ofWeek(int year, int week) {
         int max = (int) LocalDate.of(year, 12, 28).range(IsoFields.WEEK_OF_WEEK_BASED_YEAR).getMaximum();
-        if (week < 1 || week > max) throw new ValidationException("testWeek", "Year " + year + " has ISO calendar weeks 1-" + max);
+        if (week < 1 || week > max) throw new ValidationException("testWeek", "week.range", String.valueOf(year), String.valueOf(max));
         LocalDate monday = LocalDate.of(year, 1, 4).with(DayOfWeek.MONDAY).plusWeeks(week - 1L);
         return new Period(year, week, null, monday, monday.plusDays(6));
     }
 
     public static Period ofLabel(String label) {
         Matcher m = KT.matcher(label == null ? "" : label.trim());
-        if (!m.matches()) throw new ValidationException("testWeek", "Calendar week must look like KT08/26");
+        if (!m.matches()) throw new ValidationException("testWeek", "validation.week.format");
         return ofWeek(2000 + Integer.parseInt(m.group(2)), Integer.parseInt(m.group(1)));
     }
 

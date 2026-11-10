@@ -1,5 +1,6 @@
 package cz.metdat.exception;
 
-public class NotFoundException extends RuntimeException {
-    public NotFoundException(String message) { super(message); }
+/** The requested resource does not exist -> HTTP 404. */
+public class NotFoundException extends AppException {
+    public NotFoundException(String key, Object... args) { super(key, args); }
 }

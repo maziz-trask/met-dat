@@ -1,7 +1,11 @@
 export type Role = 'READER' | 'EDITOR';
 
 export interface User { id: number; code: string; name: string; email: string; role: Role; department: string | null }
+export interface UserSummary extends User { active: boolean; passwordLogin: boolean }
 export interface LoginResponse { token: string; expiresAt: string; user: User }
+export interface AuthConfig { demoEnabled: boolean; registrationEnabled: boolean }
+export interface Credentials { email: string; password: string }
+export interface Registration extends Credentials { name: string }
 
 export interface Attachment {
   id: number; originalFilename: string; contentType: string; fileSize: number; synthetic: boolean; uploadedBy: string; uploadedAt: string;

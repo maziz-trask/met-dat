@@ -27,7 +27,7 @@ public enum TestResult {
         if (value == null || value.isBlank()) return null;
         String v = value.trim();
         return Arrays.stream(values()).filter(s -> s.label.equalsIgnoreCase(v)).findFirst()
-                .orElseThrow(() -> new ValidationException("result", "Unknown result '" + value + "'"));
+                .orElseThrow(() -> new ValidationException("result", "result.unknown", value));
     }
 
     @Converter

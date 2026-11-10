@@ -1,14 +1,15 @@
 package cz.metdat.web;
 
 import cz.metdat.domain.TestStatus;
-import cz.metdat.dto.Dtos.*;
-import cz.metdat.dto.TestFilter;
+import cz.metdat.dto.*;
+import cz.metdat.exception.ValidationException;
 import cz.metdat.service.ExportService;
 import cz.metdat.service.LookupService;
 import cz.metdat.service.TechnicalTestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
@@ -31,7 +32,8 @@ public class TechnicalTestController {
     }
 
     private static TestFilter filter(String vin, Long testTypeId, String status, LocalDate from, LocalDate to) {
-        return new TestFilter(vin, testTypeId, status == null || status.isBlank() ? null : TestStatus.fromLabel(status), from, to);
+        TestStatus parsed = status == null || status.isBlank() ? null : TestStatus.fromLabel(status);
+        return new TestFilter(vin, testTypeId, parsed, from, to);
     }
 
     @GetMapping("/tests")
@@ -53,10 +55,10 @@ public class TechnicalTestController {
                                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
                                             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
                                             @RequestParam(required = false) String sort) {
-        if (!"csv".equalsIgnoreCase(format)) throw new cz.metdat.exception.ValidationException("format", "Only format=csv is supported");
+        if (!"csv".equalsIgnoreCase(format)) throw new ValidationException("format", "export.format");
         byte[] body = export.csv(filter(vin, testTypeId, status, dateFrom, dateTo), sort);
         return ResponseEntity.ok()
-            .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
+            .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
             .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename("technical-tests-" + LocalDate.now() + ".csv").build().toString())
             .body(body);
     }

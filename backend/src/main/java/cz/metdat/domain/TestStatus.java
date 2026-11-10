@@ -22,7 +22,7 @@ public enum TestStatus {
     public static TestStatus fromLabel(String value) {
         String v = value == null ? "" : value.trim();
         return Arrays.stream(values()).filter(s -> s.label.equalsIgnoreCase(v)).findFirst()
-                .orElseThrow(() -> new ValidationException("status", "Unknown status '" + value + "'"));
+                .orElseThrow(() -> new ValidationException("status", "status.unknown", String.valueOf(value)));
     }
 
     @Converter

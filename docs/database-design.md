@@ -10,7 +10,7 @@ app_user  (identity & role; referenced by e-mail in audit columns, no FK so hist
 | Table | Notes |
 |---|---|
 | `test_type` | `id`, `name` (unique, case-insensitive), `description`, `active`, audit. **Never deleted** – FK from tests prevents it; deactivation only flips `active`. |
-| `app_user` | `name`, `email` (unique ci), `role` ∈ {READER, EDITOR} (CHECK), `department`, `active`. |
+| `app_user` | `name`, `email` (unique ci), `role` ∈ {READER, EDITOR} (CHECK), `department`, `active`, `password_hash` (BCrypt, NULL for seeded demo identities; migration V4). |
 | `technical_test` | business id `test_number` (unique, `TEST-yyyy-nnnn`, sequence continues at 51), `vin`, FK `test_type_id`, `department`, `test_year`, `test_week`, optional `test_date`, `period_start/end` (CHECK start ≤ end), `responsible_person`, `status` (CHECK: Draft, Planned, In Progress, Completed, Cancelled), `result` (nullable; CHECK 7 values), `comment`, `created_by/at`, `modified_by/at`, `version`. |
 | `attachment` | FK `technical_test_id`, `original_filename`, `stored_filename` (UUID), `content_type`, `file_size`, `storage_location`, `synthetic`, `uploaded_by/at`. |
 | `attachment_content` | key → bytes, used only with `APP_STORAGE_TYPE=database`. |

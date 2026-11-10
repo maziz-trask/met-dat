@@ -1,10 +1,11 @@
 package cz.metdat.mapper;
 
 import cz.metdat.domain.*;
-import cz.metdat.dto.Dtos.*;
+import cz.metdat.dto.*;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
+/** Entity -> DTO conversion. Entities never leave the service layer. */
 @Component
 public class TestMapper {
     public TestSummary toSummary(TechnicalTest t, long attachmentCount) {
@@ -35,5 +36,9 @@ public class TestMapper {
 
     public UserResponse toUser(AppUser u) {
         return new UserResponse(u.getId(), u.getCode(), u.getName(), u.getEmail(), u.getRole().name(), u.getDepartment());
+    }
+
+    public UserSummary toUserSummary(AppUser u) {
+        return new UserSummary(u.getId(), u.getCode(), u.getName(), u.getEmail(), u.getRole().name(), u.getDepartment(), u.isActive(), u.hasPassword());
     }
 }

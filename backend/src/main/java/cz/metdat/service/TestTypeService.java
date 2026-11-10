@@ -1,7 +1,8 @@
 package cz.metdat.service;
 
 import cz.metdat.domain.TestType;
-import cz.metdat.dto.Dtos.*;
+import cz.metdat.dto.TestTypeRequest;
+import cz.metdat.dto.TestTypeResponse;
 import cz.metdat.exception.NotFoundException;
 import cz.metdat.exception.ValidationException;
 import cz.metdat.mapper.TestMapper;
@@ -25,7 +26,7 @@ public class TestTypeService {
 
     @Transactional(readOnly = true)
     public List<TestTypeResponse> list(boolean activeOnly) {
-        Map<Long, Long> usage = types.usageCounts().stream().collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        Map<Long, Long> usage = usageCounts();
         return types.findAllByOrderByNameAsc().stream().filter(t -> !activeOnly || t.isActive())
             .map(t -> mapper.toType(t, usage.getOrDefault(t.getId(), 0L))).toList();
     }
@@ -33,7 +34,7 @@ public class TestTypeService {
     @Transactional
     public TestTypeResponse create(TestTypeRequest req) {
         String name = req.name().trim();
-        if (types.existsByNameIgnoreCase(name)) throw new ValidationException("name", "A test type named '" + name + "' already exists");
+        if (types.existsByNameIgnoreCase(name)) throw new ValidationException("name", "testType.duplicate", name);
         TestType t = new TestType();
         t.setName(name);
         t.setDescription(blankToNull(req.description()));
@@ -46,7 +47,7 @@ public class TestTypeService {
     public TestTypeResponse update(Long id, TestTypeRequest req) {
         TestType t = find(id);
         String name = req.name().trim();
-        if (types.existsByNameIgnoreCaseAndIdNot(name, id)) throw new ValidationException("name", "A test type named '" + name + "' already exists");
+        if (types.existsByNameIgnoreCaseAndIdNot(name, id)) throw new ValidationException("name", "testType.duplicate", name);
         t.setName(name);
         t.setDescription(blankToNull(req.description()));
         if (req.active() != null) t.setActive(req.active());
@@ -57,14 +58,20 @@ public class TestTypeService {
     @Transactional
     public TestTypeResponse setActive(Long id, boolean active) {
         TestType t = find(id);
-        if (t.isActive() != active) { t.setActive(active); audit.modified(t); }
+        if (t.isActive() != active) {
+            t.setActive(active);
+            audit.modified(t);
+        }
         return withUsage(t);
     }
 
-    private TestTypeResponse withUsage(TestType t) {
-        return mapper.toType(t, types.usageCounts().stream().filter(r -> r[0].equals(t.getId())).mapToLong(r -> (Long) r[1]).sum());
+    private Map<Long, Long> usageCounts() {
+        return types.usageCounts().stream().collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
     }
 
-    private TestType find(Long id) { return types.findById(id).orElseThrow(() -> new NotFoundException("Test type " + id + " not found")); }
+    private TestTypeResponse withUsage(TestType t) { return mapper.toType(t, usageCounts().getOrDefault(t.getId(), 0L)); }
+
+    private TestType find(Long id) { return types.findById(id).orElseThrow(() -> new NotFoundException("testType.notFound", String.valueOf(id))); }
+
     private static String blankToNull(String s) { return s == null || s.isBlank() ? null : s.trim(); }
 }

@@ -1,6 +1,6 @@
 package cz.metdat.web;
 
-import cz.metdat.dto.Dtos.*;
+import cz.metdat.dto.*;
 import cz.metdat.service.TestTypeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

@@ -2,18 +2,17 @@ package cz.metdat.service;
 
 import cz.metdat.domain.TechnicalTest;
 import cz.metdat.dto.TestFilter;
-import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 
-/** F09: CSV export of ALL records matching the filter (not just one page). RFC 4180 quoting, UTF-8 with BOM, formula-injection safe. */
+/** F09: CSV export of ALL records matching the filter (not just one page). UTF-8 with BOM so Excel detects the encoding. */
 @Service
 public class ExportService {
-    private static final String[] HEADER = {"Test ID", "Vehicle ID / VIN", "Test Type", "Test Type Active", "Department", "Test Date",
+    private static final List<String> HEADER = List.of("Test ID", "Vehicle ID / VIN", "Test Type", "Test Type Active", "Department", "Test Date",
         "Calendar Week", "Period Start", "Period End", "Responsible Person", "Status", "Result", "Comment", "Attachments",
-        "Created By", "Created At", "Modified By", "Modified At"};
+        "Created By", "Created At", "Modified By", "Modified At");
 
     private final TechnicalTestService tests;
 
@@ -21,33 +20,19 @@ public class ExportService {
 
     public byte[] csv(TestFilter filter, String sort) {
         List<TechnicalTest> rows = tests.findAllMatching(filter, sort);
-        Map<Long, List<String>> names = tests.attachmentNames(rows.stream().map(TechnicalTest::getId).toList());
-        StringBuilder sb = new StringBuilder("﻿");
-        line(sb, List.of(HEADER));
+        Map<Long, List<String>> attachmentNames = tests.attachmentNames(rows.stream().map(TechnicalTest::getId).toList());
+        StringBuilder csv = new StringBuilder("﻿");
+        CsvWriter.line(csv, HEADER);
         for (TechnicalTest t : rows) {
-            line(sb, List.of(t.getTestNumber(), t.getVin(), t.getTestType().getName(), String.valueOf(t.getTestType().isActive()),
-                t.getDepartment(), t.getTestDate() == null ? "" : t.getTestDate().toString(), t.getWeekLabel(),
-                t.getPeriodStart().toString(), t.getPeriodEnd().toString(), t.getResponsiblePerson(), t.getStatus().label(),
-                t.getResult() == null ? "" : t.getResult().label(), nz(t.getComment()),
-                String.join("; ", names.getOrDefault(t.getId(), List.of())),
-                nz(t.getCreatedBy()), t.getCreatedAt() == null ? "" : t.getCreatedAt().toString(),
-                nz(t.getModifiedBy()), t.getModifiedAt() == null ? "" : t.getModifiedAt().toString()));
+            CsvWriter.line(csv, List.of(
+                t.getTestNumber(), t.getVin(), t.getTestType().getName(), String.valueOf(t.getTestType().isActive()),
+                t.getDepartment(), text(t.getTestDate()), t.getWeekLabel(), text(t.getPeriodStart()), text(t.getPeriodEnd()),
+                t.getResponsiblePerson(), t.getStatus().label(), t.getResult() == null ? "" : t.getResult().label(),
+                text(t.getComment()), String.join("; ", attachmentNames.getOrDefault(t.getId(), List.of())),
+                text(t.getCreatedBy()), text(t.getCreatedAt()), text(t.getModifiedBy()), text(t.getModifiedAt())));
         }
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        out.writeBytes(sb.toString().getBytes(StandardCharsets.UTF_8));
-        return out.toByteArray();
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    static String cell(String v) {
-        String s = v == null ? "" : v;
-        if (!s.isEmpty() && "=+-@\t\r".indexOf(s.charAt(0)) >= 0) s = "'" + s;   // spreadsheet formula injection guard
-        if (s.contains(",") || s.contains("\"") || s.contains("\n") || s.contains("\r")) s = "\"" + s.replace("\"", "\"\"") + "\"";
-        return s;
-    }
-
-    private static void line(StringBuilder sb, List<String> cells) {
-        for (int i = 0; i < cells.size(); i++) { if (i > 0) sb.append(','); sb.append(cell(cells.get(i))); }
-        sb.append("\r\n");
-    }
-    private static String nz(String s) { return s == null ? "" : s; }
+    private static String text(Object value) { return value == null ? "" : value.toString(); }
 }

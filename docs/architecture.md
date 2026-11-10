@@ -20,6 +20,8 @@ Browser (React SPA) ──HTTPS──► Spring Boot ──JDBC──► Postgre
 | `storage` | `FileStorage` (filesystem or database), `AttachmentValidator`, synthetic demo file generator |
 
 ## Key decisions
+0. **Authentication**: e-mail/password (BCrypt) with registration (always Reader), plus fixed demo identities. Every token is server-signed; the caller's role is **re-read from the database on each request**, so promotions/demotions/deactivation apply at once. Failed logins are throttled and unknown e-mails cost the same time as wrong passwords.
+0a. **Internationalisation**: exceptions carry message *keys*; `GlobalExceptionHandler` resolves them from `messages_{en,cs}.properties` using Accept-Language (bean-validation messages use the same bundles). The React app uses i18next with typed, parity-tested locale files, and a light/dark theme factory.
 1. **Server-verified identity**: demo login looks the user up and signs a JWT (`role` from DB). Writes are denied for non-Editors by URL rule *before* body validation, plus `@PreAuthorize` on each write method. Tokens are bearer headers, so CSRF does not apply; no cookies.
 2. **F06 in one place**: `CompletionRule.check` is called from create, update and status change; all take a pessimistic row lock, as does attachment deletion, which makes "complete" vs "delete last attachment" serialisable. `@Version` adds optimistic locking for edit forms.
 3. **Audit** is stamped only by the server (`AuditStamper`) from the token subject and server clock; DTOs contain no writable audit fields.

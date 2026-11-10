@@ -6,7 +6,7 @@ Demo module for recording technical tests performed on vehicles (MET-DAT Benchma
 |---|---|
 | Stack | Java 21 · Spring Boot 3.4 · Spring Security (JWT bearer) · Spring Data JPA/Hibernate · PostgreSQL 16 · Flyway · springdoc OpenAPI · React 18 + TypeScript + Vite · MUI · React Router · TanStack Query · React Hook Form |
 | Delivery | One Docker image (Spring Boot serves the built SPA) + PostgreSQL |
-| Tests | 39 backend (unit + integration on real PostgreSQL) · 10 frontend (Vitest) · HTTP smoke test script |
+| Tests | 47 backend (unit + integration on real PostgreSQL) · 18 frontend (Vitest) · HTTP smoke test script (30 checks) |
 
 ## 1. Features (F01–F12)
 
@@ -19,7 +19,7 @@ Demo module for recording technical tests performed on vehicles (MET-DAT Benchma
 | F05 | Filters VIN (contains), type, status, date From/To – executed in SQL, not in the browser |
 | F06 | Completion rule enforced in the backend inside a row-locked transaction (see §6) |
 | F07 | Multi-file upload, download, delete; extension + MIME + magic-byte + size validation; safe stored names |
-| F08 | Reader / Editor enforced by Spring Security (URL rules **and** `@PreAuthorize`), role read from DB, token signed by server |
+| F08 | Reader / Editor enforced by Spring Security (URL rules **and** `@PreAuthorize`); the role is re-read from the database on every request; tokens are signed by the server. E-mail + password registration/login and demo identities |
 | F09 | CSV export of **all** records matching the current filters |
 | F10 | Test-type management page (create, edit, activate, deactivate; never deleted) |
 | F11 | PostgreSQL schema, Flyway migrations, seed from the workbook, `database/initialization.sql` |
@@ -55,9 +55,16 @@ cd frontend && npm test
 node scripts/smoke-test.mjs http://localhost:8080   # black-box check of a running instance
 ```
 
-## 3. Demo users (fixed, seeded from the workbook)
+## 3. Accounts: registration, login and demo users
 
-Open the app → **Quick start as Editor / Reader**, or pick a person. Switch identity any time via the chip at the top right. No passwords: this is a documented demo mechanism (`POST /api/auth/demo-login {userId}` → server-signed JWT whose role comes from the `app_user` table). Disable with `APP_DEMO_ENABLED=false`.
+* **Register** (tab *Create account*): name, e-mail, password (8–72 chars, stored only as a BCrypt hash). New accounts are **always Readers** – the API has no role field, and a role in the payload is ignored. Disable with `APP_REGISTRATION_ENABLED=false`.
+* **Sign in** with e-mail + password. Failed attempts are throttled (5 per 10 minutes per account, HTTP 429).
+* **Editors** grant or revoke the Editor role on the *Users* page (`PATCH /api/users/{id}/role`); changes apply immediately because the role is read from the database on each request; you cannot change your own role.
+* **Demo users** (below) keep working for evaluators: one click, no password.
+
+### Demo users (fixed, seeded from the workbook)
+
+Open the app → tab **Demo users** → **Quick start as Editor / Reader**, or pick a person. Switch identity any time via the account chip at the top right. Demo users have no password (`POST /api/auth/demo-login {userId}` → server-signed JWT); they cannot be used for password login. Disable with `APP_DEMO_ENABLED=false`.
 
 | Role | Users |
 |---|---|
@@ -71,11 +78,16 @@ Open the app → **Quick start as Editor / Reader**, or pick a person. Switch id
 | `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | localhost / metdat | JDBC settings (alternatively `DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD`) |
 | `APP_JWT_SECRET` | random per start | HS256 signing key, ≥ 32 chars. **Set in production** or tokens die on restart |
 | `APP_DEMO_ENABLED` | `true` | demo sign-in endpoints |
+| `APP_REGISTRATION_ENABLED` | `true` | self-registration (new accounts are Readers) |
 | `APP_STORAGE_TYPE` | `filesystem` | `filesystem` (needs persistent volume at `APP_STORAGE_PATH`) or `database` (bytes in PostgreSQL) |
 | `APP_UPLOAD_MAX_FILE_SIZE` | `10MB` | per-file limit |
 | `APP_UPLOAD_ALLOWED_EXTENSIONS` | `pdf,csv,txt,xlsx,docx,png,jpg,jpeg` | allow-list |
 | `APP_CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | only needed if the UI is hosted on another origin |
 | `PORT` | `8080` | HTTP port |
+
+## 4a. Languages and theme
+
+The UI is available in **English and Czech** (EN/CS switch in the top bar; remembered, defaults to the browser language) and in **light and dark mode** (remembered, defaults to the OS setting). The UI sends `Accept-Language` and the **API answers in the same language** (validation errors, F06 reasons, upload errors): messages live in `backend/src/main/resources/messages*.properties`, UI texts in `frontend/src/i18n/locales/`. Seeded data values (types, comments, statuses/results as stored) are not translated, only their display labels.
 
 ## 5. Attachments
 
@@ -103,7 +115,7 @@ See **docs/deployment-guide.md** (Render blueprint `render.yaml`, VPS with autom
 
 ## 10. Known limitations / deviations
 
-* Demo sign-in has **no passwords** by design (spec allows a simplified mechanism); not for real data.
+* Demo identities have **no passwords** (spec allows a simplified mechanism). Registration has no e-mail verification and no password reset; the login throttle is in-memory (per instance). Not hardened for real personal data.
 * Test records cannot be deleted (explicitly out of scope).
 * Export is CSV only (comma separated, UTF-8 with BOM); the whole file is built in memory – fine for demo volumes, use streaming for millions of rows.
 * No virus scanning of uploads; no object-store (S3) adapter yet (the `FileStorage` interface is ready for one).

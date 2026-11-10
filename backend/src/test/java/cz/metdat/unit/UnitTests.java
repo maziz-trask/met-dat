@@ -33,11 +33,11 @@ class UnitTests {
     @Test void completionRuleRejectsEverythingElse() {
         for (TestResult r : TestResult.values()) {
             if (r == TestResult.PASSED || r == TestResult.FAILED) continue;
-            assertThatThrownBy(() -> CompletionRule.check(r, 2)).isInstanceOf(BusinessRuleException.class).hasMessageContaining("Passed or Failed");
+            assertThatThrownBy(() -> CompletionRule.check(r, 2)).isInstanceOf(BusinessRuleException.class).hasMessage("completion.result");
         }
-        assertThatThrownBy(() -> CompletionRule.check(null, 1)).hasMessageContaining("empty");
-        assertThatThrownBy(() -> CompletionRule.check(TestResult.PASSED, 0)).hasMessageContaining("at least one attachment");
-        assertThatThrownBy(() -> CompletionRule.check(TestResult.NOT_EVALUATED, 0)).hasMessageContaining("Passed or Failed").hasMessageContaining("attachment");
+        assertThatThrownBy(() -> CompletionRule.check(null, 1)).hasMessage("completion.result");
+        assertThatThrownBy(() -> CompletionRule.check(TestResult.PASSED, 0)).hasMessage("completion.attachment");
+        assertThatThrownBy(() -> CompletionRule.check(TestResult.NOT_EVALUATED, 0)).hasMessage("completion.both");
     }
 
     // ---- service with mocks ----
@@ -88,16 +88,16 @@ class UnitTests {
 
     // ---- CSV export ----
     @Test void csvCellEscapingAndFormulaGuard() {
-        var m = ExportServiceAccess.cell("a,b");
+        var m = CsvWriter.cell("a,b");
         assertThat(m).isEqualTo("\"a,b\"");
-        assertThat(ExportServiceAccess.cell("say \"hi\"")).isEqualTo("\"say \"\"hi\"\"\"");
-        assertThat(ExportServiceAccess.cell("=SUM(A1)")).isEqualTo("'=SUM(A1)");
-        assertThat(ExportServiceAccess.cell(null)).isEmpty();
+        assertThat(CsvWriter.cell("say \"hi\"")).isEqualTo("\"say \"\"hi\"\"\"");
+        assertThat(CsvWriter.cell("=SUM(A1)")).isEqualTo("'=SUM(A1)");
+        assertThat(CsvWriter.cell(null)).isEmpty();
     }
 
     // ---- attachments ----
     private AttachmentValidator validator() {
-        return new AttachmentValidator(new AppProperties(null, null, null, null,
+        return new AttachmentValidator(new AppProperties(null, null, null, null, null,
             new AppProperties.Upload(DataSize.ofBytes(1024), List.of("pdf", "csv"))));
     }
 
@@ -110,11 +110,11 @@ class UnitTests {
 
     @Test void validatorRejectsBadFiles() {
         var v = validator();
-        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.exe", "application/pdf", "%PDF-".getBytes()))).hasMessageContaining("unsupported type");
-        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.docx", "application/pdf", "PK".getBytes()))).hasMessageContaining("unsupported type");   // not enabled in this config
-        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.pdf", "application/pdf", new byte[2000]))).hasMessageContaining("too large");
-        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.pdf", "text/html", "%PDF-".getBytes()))).hasMessageContaining("does not match");
-        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.pdf", "application/pdf", "<html>".getBytes()))).hasMessageContaining("does not look like");
+        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.exe", "application/pdf", "%PDF-".getBytes()))).hasMessage("attachment.unsupportedType");
+        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.docx", "application/pdf", "PK".getBytes()))).hasMessage("attachment.unsupportedType");   // not enabled in this config
+        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.pdf", "application/pdf", new byte[2000]))).hasMessage("attachment.tooLarge");
+        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.pdf", "text/html", "%PDF-".getBytes()))).hasMessage("attachment.mimeMismatch");
+        assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "x.pdf", "application/pdf", "<html>".getBytes()))).hasMessage("attachment.badContent");
         assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "..", "application/pdf", "%PDF-".getBytes()))).isInstanceOf(ValidationException.class);
         assertThatThrownBy(() -> v.validate(new MockMultipartFile("files", "noext", "application/pdf", "%PDF-".getBytes()))).isInstanceOf(ValidationException.class);
     }
@@ -124,14 +124,15 @@ class UnitTests {
         byte[] csv = SyntheticFiles.forFile("TEST-2026-0004_measurement.csv", "TEST-2026-0004");
         assertThat(new String(pdf, StandardCharsets.ISO_8859_1)).startsWith("%PDF-1.4").endsWith("%%EOF\n").contains("SYNTHETIC DEMO FILE");
         assertThat(new String(csv, StandardCharsets.UTF_8)).contains("SYNTHETIC DEMO FILE");
-        var v = new AttachmentValidator(new AppProperties(null, null, null, null, new AppProperties.Upload(DataSize.ofMegabytes(1), List.of("pdf", "csv"))));
+        var v = new AttachmentValidator(new AppProperties(null, null, null, null, null,
+            new AppProperties.Upload(DataSize.ofMegabytes(1), List.of("pdf", "csv"))));
         v.validate(new MockMultipartFile("files", "a.pdf", "application/pdf", pdf));
         v.validate(new MockMultipartFile("files", "a.csv", "text/csv", csv));
     }
 
     @Test void fileSystemStorageBlocksPathTraversal() throws Exception {
         var dir = java.nio.file.Files.createTempDirectory("metdat");
-        var s = new FileSystemStorage(new AppProperties(null, null, null, new AppProperties.Storage("filesystem", dir.toString()), null));
+        var s = new FileSystemStorage(new AppProperties(null, null, null, null, new AppProperties.Storage("filesystem", dir.toString()), null));
         s.store("1/a.bin", new byte[] {1});
         assertThat(s.exists("1/a.bin")).isTrue();
         assertThatThrownBy(() -> s.store("../evil.bin", new byte[] {1})).isInstanceOf(SecurityException.class);

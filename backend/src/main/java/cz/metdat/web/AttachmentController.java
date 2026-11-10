@@ -1,6 +1,6 @@
 package cz.metdat.web;
 
-import cz.metdat.dto.Dtos.AttachmentResponse;
+import cz.metdat.dto.*;
 import cz.metdat.service.AttachmentService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
