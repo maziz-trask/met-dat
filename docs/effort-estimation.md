@@ -12,11 +12,11 @@ Estimate for a competent full-stack developer building **this demo module** (ana
 | F06 | Status validation | 1.5 | CompletionRule, row locking, last-attachment rule, 409 error contract, UI messaging, dedicated tests | concurrency tested logically, no load test |
 | F07 | Attachments | 2.0 | upload/download/delete, validation (ext/MIME/magic/size), storage abstraction (fs + DB), rollback cleanup, synthetic files | no virus scan, no S3 |
 | F08 | Permissions | 1.5 | JWT demo login, role claim, URL + method security, JSON 401/403, role switcher UI, authorization tests | no real IAM/SSO |
-| F09 | Export | 0.5 | CSV all-matches, escaping, BOM, formula-injection guard | CSV only, in-memory |
+| F09 | Export | 0.75 | CSV and XLSX of all matches (shared row builder), escaping, BOM, formula-injection safety, export menu in UI | in-memory; hand-written XLSX writer (no POI), single sheet |
 | F10 | Test type management | 1.25 | CRUD API, activate/deactivate, usage counts, UI dialog, rules for inactive types | |
 | F11 | Data model & SQL | 1.5 | schema, constraints, indexes, Flyway, workbook importer, validation report, initialization.sql | one-time analysis of data inconsistencies included |
 | F12 | Documentation & demo env | 1.5 | README, architecture/DB docs, demo scenarios, deployment files, smoke test | public hosting account set-up by owner not included |
-| | **Subtotal functions** | **15.0** | | |
+| | **Subtotal functions** | **15.25** | | |
 
 | Shared / cross-cutting (not in functions) | MD | Content |
 |---|---:|---|
@@ -27,6 +27,6 @@ Estimate for a competent full-stack developer building **this demo module** (ana
 | CI/CD | 0.5 | pipeline: build, test, image |
 | Test infrastructure | 0.5 | embedded PostgreSQL base class, frontend test setup |
 | **Subtotal shared** | **4.75** | |
-| **TOTAL** | **19.75 MD** | |
+| **TOTAL** | **20.0 MD** | |
 
 Notes: figures are a professional estimate for manual development; the actual implementation here was AI-assisted and took far less elapsed time, which is not a basis for the estimate. Contingency (≈15 %) is not included. CI/CD is estimated but a pipeline file is not part of the delivered repository.

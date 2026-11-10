@@ -89,6 +89,26 @@ const exp = await call('GET', '/api/tests/export?format=csv&status=Completed', {
 const lines = exp.buf.toString('utf8').trim().split('\r\n');
 const total = (await call('GET', '/api/tests?status=Completed&size=1', { token: R })).data.totalElements;
 ok('CSV export has ALL filtered rows (not one page)', exp.status === 200 && lines.length === total + 1, `${lines.length} lines vs ${total}`);
+// XLSX export: a real OOXML zip whose sheet has header + all filtered rows
+import zlib from 'node:zlib';
+function readZip(buf) {
+  const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const count = buf.readUInt16LE(eocd + 10);
+  let p = buf.readUInt32LE(eocd + 16);
+  const files = {};
+  for (let i = 0; i < count; i++) {
+    const method = buf.readUInt16LE(p + 10), csize = buf.readUInt32LE(p + 20), nlen = buf.readUInt16LE(p + 28), elen = buf.readUInt16LE(p + 30), clen = buf.readUInt16LE(p + 32);
+    const lho = buf.readUInt32LE(p + 42), name = buf.toString('utf8', p + 46, p + 46 + nlen);
+    const data = lho + 30 + buf.readUInt16LE(lho + 26) + buf.readUInt16LE(lho + 28);
+    files[name] = method === 0 ? buf.subarray(data, data + csize) : zlib.inflateRawSync(buf.subarray(data, data + csize));
+    p += 46 + nlen + elen + clen;
+  }
+  return files;
+}
+const xl = await call('GET', '/api/tests/export?format=xlsx&status=Completed', { token: R });
+let xlRows = -1;
+try { xlRows = (readZip(xl.buf)['xl/worksheets/sheet1.xml'].toString('utf8').match(/<row /g) || []).length; } catch { /* not a zip */ }
+ok('XLSX export is a valid package with ALL filtered rows', xl.status === 200 && xl.headers.get('content-type').includes('spreadsheetml') && xlRows === total + 1, `rows=${xlRows} expected ${total + 1}`);
 const forged = (await call('POST', '/api/test-types', { token: R, json: { name: 'x' } }));
 ok('role cannot be forged by request (still 403)', forged.status === 403);
 

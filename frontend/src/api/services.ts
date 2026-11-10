@@ -34,7 +34,8 @@ export const testsApi = {
   },
   update: (id: number, req: TestRequest) => http.put<TestDetail>(`/tests/${id}`, req).then((r) => r.data),
   changeStatus: (id: number, status: string) => http.patch<TestDetail>(`/tests/${id}/status`, { status }).then((r) => r.data),
-  exportCsv: (f: TestFilters & { sort?: string }) => downloadFile('/tests/export', withoutEmpty({ format: 'csv', ...f }), 'technical-tests.csv'),
+  exportFile: (format: 'csv' | 'xlsx', f: TestFilters & { sort?: string }) =>
+    downloadFile('/tests/export', withoutEmpty({ format, ...f }), `technical-tests.${format}`),
 };
 
 export const attachmentsApi = {

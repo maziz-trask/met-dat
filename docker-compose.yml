@@ -1,4 +1,5 @@
 # Local development / evaluation:  docker compose up --build   ->  http://localhost:8080
+# (change the port with APP_PORT in .env if 8080 is taken)
 services:
   db:
     image: postgres:16-alpine
@@ -8,8 +9,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-metdat} -d ${POSTGRES_DB:-metdat}"]
       interval: 5s
@@ -27,13 +26,14 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?set APP_JWT_SECRET in .env}
       APP_DEMO_ENABLED: ${APP_DEMO_ENABLED:-true}
+      APP_REGISTRATION_ENABLED: ${APP_REGISTRATION_ENABLED:-true}
       APP_STORAGE_TYPE: ${APP_STORAGE_TYPE:-filesystem}
       APP_STORAGE_PATH: /data/attachments
       APP_UPLOAD_MAX_FILE_SIZE: ${APP_UPLOAD_MAX_FILE_SIZE:-10MB}
     volumes:
       - attachments:/data/attachments
     ports:
-      - "8080:8080"
+      - "${APP_PORT:-8080}:8080"
 
 volumes:
   pgdata:

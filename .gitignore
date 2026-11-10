@@ -24,3 +24,5 @@ Thumbs.db
 backend/src/main/resources/static/
 
 input/
+
+dist/

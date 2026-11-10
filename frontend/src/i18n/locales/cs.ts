@@ -43,7 +43,7 @@ const cs: typeof en = {
     openOverview: 'Otevřít přehled zkoušek', createTest: 'Založit novou zkoušku', types: 'Typy zkoušek',
   },
   list: {
-    title: 'Technické zkoušky', exportCsv: 'Export CSV', exporting: 'Exportuji…', newTest: 'Nová zkouška', exported: 'Export stažen (všechny záznamy odpovídající aktuálním filtrům).',
+    title: 'Technické zkoušky', export: 'Export', exportCsv: 'CSV (.csv)', exportXlsx: 'Excel (.xlsx)', exportMenu: 'Exportovat všechny odpovídající zkoušky', exporting: 'Exportuji…', newTest: 'Nová zkouška', exported: 'Export stažen (všechny záznamy odpovídající aktuálním filtrům).',
     vin: 'Vehicle ID / VIN', vinPlaceholder: 'obsahuje…', type: 'Typ zkoušky', allTypes: 'Všechny typy', status: 'Status', allStatuses: 'Všechny statusy',
     dateFrom: 'Datum zkoušky od', dateTo: 'Datum zkoušky do', rangeError: '„Od“ nesmí být později než „Do“',
     weekHint: 'Rozsah dat odpovídá zkouškám, jejichž ISO kalendářní týden (po–ne) se s rozsahem překrývá.',

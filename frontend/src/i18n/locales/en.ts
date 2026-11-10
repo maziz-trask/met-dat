@@ -41,7 +41,7 @@ const en = {
     openOverview: 'Open test overview', createTest: 'Create a new test', types: 'Test types',
   },
   list: {
-    title: 'Technical tests', exportCsv: 'Export CSV', exporting: 'Exporting…', newTest: 'New test', exported: 'Export downloaded (all records matching the current filters).',
+    title: 'Technical tests', export: 'Export', exportCsv: 'CSV (.csv)', exportXlsx: 'Excel (.xlsx)', exportMenu: 'Export all matching tests', exporting: 'Exporting…', newTest: 'New test', exported: 'Export downloaded (all records matching the current filters).',
     vin: 'Vehicle ID / VIN', vinPlaceholder: 'contains…', type: 'Test type', allTypes: 'All types', status: 'Status', allStatuses: 'All statuses',
     dateFrom: 'Test date from', dateTo: 'Test date to', rangeError: '"From" must not be after "To"',
     weekHint: 'Date range matches tests whose ISO calendar week (Mon–Sun) overlaps the range.',

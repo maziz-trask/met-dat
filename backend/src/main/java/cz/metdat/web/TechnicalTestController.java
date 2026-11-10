@@ -23,6 +23,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api")
 @Tag(name = "Technical tests")
 public class TechnicalTestController {
+    private static final String XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
     private final TechnicalTestService service;
     private final ExportService export;
     private final LookupService lookups;
@@ -48,19 +50,25 @@ public class TechnicalTestController {
     }
 
     @GetMapping("/tests/export")
-    @Operation(summary = "CSV export of ALL tests matching the filters (not limited to a page)")
-    public ResponseEntity<byte[]> exportCsv(@RequestParam(defaultValue = "csv") String format,
-                                            @RequestParam(required = false) String vin, @RequestParam(required = false) Long testTypeId,
-                                            @RequestParam(required = false) String status,
-                                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
-                                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
-                                            @RequestParam(required = false) String sort) {
-        if (!"csv".equalsIgnoreCase(format)) throw new ValidationException("format", "export.format");
-        byte[] body = export.csv(filter(vin, testTypeId, status, dateFrom, dateTo), sort);
-        return ResponseEntity.ok()
-            .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename("technical-tests-" + LocalDate.now() + ".csv").build().toString())
-            .body(body);
+    @Operation(summary = "Export ALL tests matching the filters (not limited to a page) as format=csv or format=xlsx")
+    public ResponseEntity<byte[]> export(@RequestParam(defaultValue = "csv") String format,
+                                         @RequestParam(required = false) String vin, @RequestParam(required = false) Long testTypeId,
+                                         @RequestParam(required = false) String status,
+                                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFrom,
+                                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateTo,
+                                         @RequestParam(required = false) String sort) {
+        TestFilter filter = filter(vin, testTypeId, status, dateFrom, dateTo);
+        String stamp = "technical-tests-" + LocalDate.now();
+        return switch (format.toLowerCase()) {
+            case "csv" -> download(export.csv(filter, sort), new MediaType("text", "csv", StandardCharsets.UTF_8), stamp + ".csv");
+            case "xlsx" -> download(export.xlsx(filter, sort), MediaType.parseMediaType(XLSX_TYPE), stamp + ".xlsx");
+            default -> throw new ValidationException("format", "export.format");
+        };
+    }
+
+    private static ResponseEntity<byte[]> download(byte[] body, MediaType type, String filename) {
+        return ResponseEntity.ok().contentType(type)
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename(filename).build().toString()).body(body);
     }
 
     @GetMapping("/tests/summary")

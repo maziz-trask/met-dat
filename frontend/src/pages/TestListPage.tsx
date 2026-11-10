@@ -1,4 +1,4 @@
-import { Alert, Button, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Button, Menu, MenuItem, Paper, Stack, Typography } from '@mui/material';
 import FileDownload from '@mui/icons-material/FileDownload';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
@@ -32,6 +32,7 @@ export function TestListPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => setDraft(fromUrl()), [params]);
   const [exporting, setExporting] = useState(false);
+  const [exportAnchor, setExportAnchor] = useState<HTMLElement | null>(null);
 
   const types = useTestTypes();
   const lookups = useLookups();
@@ -48,9 +49,11 @@ export function TestListPage() {
   };
   const hasFilters = FILTER_KEYS.some((k) => !!filters[k]);
 
-  const exportCsv = async () => {
+  /** Exports ALL records matching the current filters (not just this page) in the chosen format. */
+  const exportAs = async (format: 'csv' | 'xlsx') => {
+    setExportAnchor(null);
     setExporting(true);
-    try { await testsApi.exportCsv({ ...filters, sort }); notify(t('list.exported')); }
+    try { await testsApi.exportFile(format, { ...filters, sort }); notify(t('list.exported')); }
     catch (e) { notify(apiErrorMessage(e), 'error'); }
     finally { setExporting(false); }
   };
@@ -60,7 +63,12 @@ export function TestListPage() {
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={1} sx={{ mb: 2 }}>
         <Typography variant="h4">{t('list.title')}</Typography>
         <Stack direction="row" spacing={1}>
-          <Button startIcon={<FileDownload />} variant="outlined" onClick={exportCsv} disabled={exporting}>{exporting ? t('list.exporting') : t('list.exportCsv')}</Button>
+          <Button startIcon={<FileDownload />} variant="outlined" onClick={(e) => setExportAnchor(e.currentTarget)} disabled={exporting}
+            aria-haspopup="menu" aria-label={t('list.exportMenu')}>{exporting ? t('list.exporting') : t('list.export')}</Button>
+          <Menu anchorEl={exportAnchor} open={!!exportAnchor} onClose={() => setExportAnchor(null)}>
+            <MenuItem onClick={() => exportAs('csv')}>{t('list.exportCsv')}</MenuItem>
+            <MenuItem onClick={() => exportAs('xlsx')}>{t('list.exportXlsx')}</MenuItem>
+          </Menu>
           {isEditor && <Button variant="contained" component={Link} to="/tests/new">{t('list.newTest')}</Button>}
         </Stack>
       </Stack>

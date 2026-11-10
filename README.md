@@ -6,7 +6,7 @@ Demo module for recording technical tests performed on vehicles (MET-DAT Benchma
 |---|---|
 | Stack | Java 21 · Spring Boot 3.4 · Spring Security (JWT bearer) · Spring Data JPA/Hibernate · PostgreSQL 16 · Flyway · springdoc OpenAPI · React 18 + TypeScript + Vite · MUI · React Router · TanStack Query · React Hook Form |
 | Delivery | One Docker image (Spring Boot serves the built SPA) + PostgreSQL |
-| Tests | 47 backend (unit + integration on real PostgreSQL) · 18 frontend (Vitest) · HTTP smoke test script (30 checks) |
+| Tests | 50 backend (unit + integration on real PostgreSQL) · 20 frontend (Vitest) · HTTP smoke test script (31 checks) |
 
 ## 1. Features (F01–F12)
 
@@ -20,7 +20,7 @@ Demo module for recording technical tests performed on vehicles (MET-DAT Benchma
 | F06 | Completion rule enforced in the backend inside a row-locked transaction (see §6) |
 | F07 | Multi-file upload, download, delete; extension + MIME + magic-byte + size validation; safe stored names |
 | F08 | Reader / Editor enforced by Spring Security (URL rules **and** `@PreAuthorize`); the role is re-read from the database on every request; tokens are signed by the server. E-mail + password registration/login and demo identities |
-| F09 | CSV export of **all** records matching the current filters |
+| F09 | Export of **all** records matching the current filters as **CSV** or **XLSX** (Excel) – the same rows in both formats |
 | F10 | Test-type management page (create, edit, activate, deactivate; never deleted) |
 | F11 | PostgreSQL schema, Flyway migrations, seed from the workbook, `database/initialization.sql` |
 | F12 | This README, docs/, Docker Compose, Render blueprint, VPS compose |
@@ -103,7 +103,7 @@ Allowed: **PDF, CSV, TXT, XLSX, DOCX, PNG, JPG** (configurable). Max **10 MB per
 
 ## 7. API
 
-Swagger UI `/swagger-ui.html`, OpenAPI JSON `/v3/api-docs`. Main endpoints: `GET/POST /api/tests`, `GET/PUT /api/tests/{id}`, `PATCH /api/tests/{id}/status`, `GET /api/tests/export?format=csv`, `…/attachments` (list, upload, `/{id}/download`, delete), `/api/test-types` (+ `/activate`, `/deactivate`), `/api/auth/*`, `/api/lookups`, `/actuator/health`. Errors share one JSON shape `{timestamp,status,code,message,path,fieldErrors[]}`.
+Swagger UI `/swagger-ui.html`, OpenAPI JSON `/v3/api-docs`. Main endpoints: `GET/POST /api/tests`, `GET/PUT /api/tests/{id}`, `PATCH /api/tests/{id}/status`, `GET /api/tests/export?format=csv|xlsx` (same filters as the list), `…/attachments` (list, upload, `/{id}/download`, delete), `/api/test-types` (+ `/activate`, `/deactivate`), `/api/auth/*`, `/api/lookups`, `/actuator/health`. Errors share one JSON shape `{timestamp,status,code,message,path,fieldErrors[]}`.
 
 ## 8. Data notes and interpretations (read before judging the data)
 
@@ -117,7 +117,7 @@ See **docs/deployment-guide.md** (Render blueprint `render.yaml`, VPS with autom
 
 * Demo identities have **no passwords** (spec allows a simplified mechanism). Registration has no e-mail verification and no password reset; the login throttle is in-memory (per instance). Not hardened for real personal data.
 * Test records cannot be deleted (explicitly out of scope).
-* Export is CSV only (comma separated, UTF-8 with BOM); the whole file is built in memory – fine for demo volumes, use streaming for millions of rows.
+* Export formats: **CSV** (comma separated, UTF-8 with BOM) and **XLSX** (single sheet, bold frozen header, auto-filter, all cells as text so formulas cannot run; written by a small built-in writer, no Apache POI). Files are built in memory – fine for demo volumes; use streaming for hundreds of thousands of rows. The XLSX structure is verified by automated tests, and a sample export was opened in desktop Excel (29 rows x 18 columns, auto-filter active, no repair prompt).
 * No virus scanning of uploads; no object-store (S3) adapter yet (the `FileStorage` interface is ready for one).
 * Date filter semantics on calendar weeks are an interpretation (overlap), documented above.
 * Frontend uses a single JS bundle (~690 kB, 221 kB gzip), no code splitting.
