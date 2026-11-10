@@ -1,0 +1,37 @@
+# Render Blueprint: one Docker web service + one PostgreSQL database. Deploy via Dashboard > New > Blueprint.
+# Attachments are stored IN PostgreSQL (APP_STORAGE_TYPE=database) because free web services have an ephemeral disk.
+# Verify current plans/prices on https://render.com/pricing before applying: the free database expires after 30 days.
+services:
+  - type: web
+    name: met-dat
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /actuator/health/liveness
+    envVars:
+      - key: DB_HOST
+        fromDatabase: { name: met-dat-db, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: met-dat-db, property: port }
+      - key: DB_NAME
+        fromDatabase: { name: met-dat-db, property: database }
+      - key: DB_USER
+        fromDatabase: { name: met-dat-db, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: met-dat-db, property: password }
+      - key: APP_JWT_SECRET
+        generateValue: true
+      - key: APP_STORAGE_TYPE
+        value: database
+      - key: APP_DEMO_ENABLED
+        value: "true"
+      - key: APP_CORS_ALLOWED_ORIGINS
+        value: ""
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:MaxRAMPercentage=65 -Xss512k"
+
+databases:
+  - name: met-dat-db
+    plan: free
+    databaseName: metdat
+    user: metdat

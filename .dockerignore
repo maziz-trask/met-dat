@@ -1,0 +1,10 @@
+.git
+.tools
+.env
+input
+data
+**/node_modules
+**/target
+frontend/dist
+backend/src/main/resources/static
+*.log

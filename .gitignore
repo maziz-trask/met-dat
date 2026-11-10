@@ -1,0 +1,26 @@
+# secrets / env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# build artifacts
+backend/target/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+# portable toolchain, local data
+.tools/
+data/
+backend/data/
+*.log
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+backend/src/main/resources/static/
+
+input/

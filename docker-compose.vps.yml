@@ -1,0 +1,43 @@
+# Self-hosted production-like deployment on any VPS with Docker: automatic HTTPS via Caddy (Let's Encrypt).
+#   1. point a DNS A record for DOMAIN to the server   2. create .env (see .env.example) incl. DOMAIN=demo.example.com
+#   3. docker compose -f docker-compose.vps.yml up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-metdat}
+      POSTGRES_USER: ${POSTGRES_USER:-metdat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: [ "pgdata:/var/lib/postgresql/data" ]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-metdat} -d ${POSTGRES_DB:-metdat}"]
+      interval: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-metdat}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-metdat}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?set APP_JWT_SECRET}
+      APP_STORAGE_TYPE: filesystem
+      APP_STORAGE_PATH: /data/attachments
+    volumes: [ "attachments:/data/attachments" ]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: [ "80:80", "443:443" ]
+    command: caddy reverse-proxy --from ${DOMAIN:?set DOMAIN} --to app:8080
+    volumes: [ "caddy_data:/data", "caddy_config:/config" ]
+    depends_on: [ app ]
+
+volumes:
+  pgdata:
+  attachments:
+  caddy_data:
+  caddy_config:

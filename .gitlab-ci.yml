@@ -1,0 +1,30 @@
+# Builds the single deployable image (React + Spring Boot) with Kaniko and pushes it to Docker Hub,
+# from where Render (or any host) can pull it. No Docker daemon / privileged runner needed.
+#
+# Required CI/CD variables (Settings > CI/CD > Variables, mark both "Masked"; never commit them):
+#   DOCKERHUB_USER   your Docker Hub username
+#   DOCKERHUB_TOKEN  a Docker Hub access token with Read & Write scope (Account settings > Security)
+#
+# Runs on pushes to the default branch and can be started manually from the pipeline page.
+
+stages: [build]
+
+build-image:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - test -n "$DOCKERHUB_USER" && test -n "$DOCKERHUB_TOKEN" || { echo "Set DOCKERHUB_USER and DOCKERHUB_TOKEN CI/CD variables"; exit 1; }
+    - mkdir -p /kaniko/.docker
+    - AUTH=$(printf '%s:%s' "$DOCKERHUB_USER" "$DOCKERHUB_TOKEN" | base64 | tr -d '\n')
+    - printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}' "$AUTH" > /kaniko/.docker/config.json
+    - >
+      /kaniko/executor
+      --context "$CI_PROJECT_DIR"
+      --dockerfile "$CI_PROJECT_DIR/Dockerfile"
+      --destination "docker.io/$DOCKERHUB_USER/met-dat:latest"
+      --destination "docker.io/$DOCKERHUB_USER/met-dat:$CI_COMMIT_SHORT_SHA"
